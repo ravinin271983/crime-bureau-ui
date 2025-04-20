@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {getCases, getLegalActions, saveLegalAction} from '../services/backend-services';
+import {getCases, getLegalActions, saveCase, saveLegalAction} from '../services/backend-services';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Paper from '@mui/material/Paper';  
 import Button from '@mui/material/Button';
@@ -7,38 +7,16 @@ import TextField from '@mui/material/TextField';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import PlusIcon from '@mui/icons-material/Add';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import InputLabel from '@mui/material/InputLabel';
-import EvidenceType from '../types/EvidenceType';
 import CaseType from '../types/CaseType';
-import VictimType from '../types/VictimType';
 import LegalActionType from '../types/LegalActionType';
 
-const columns: GridColDef[] = [
-  { field: 'actionTaken', headerName: 'Action Taken', width: 130 },
-  { field: 'dateAction', headerName: 'Date Action', width: 120, valueGetter: (row: LegalActionType) => getDateAction(row),},
-  { field: 'evidenceDetails', headerName: 'Evidence Details', width: 250},
-  { field: 'caseObj',
-      headerName: 'Case',
-      width: 160,
-      valueGetter: (row: LegalActionType) => getCaseName(row),
-    },
-];
-const getCaseName = (row: LegalActionType) => {
-  console.log('row', row)
-  if(!row || !row.caseObj) return 'Not Assigned'; 
-  return row.caseObj?.description;
-}
-const getDateAction = (row: LegalActionType) => {
-  console.log('row', row)
-  if(!row || !row.dateAction) return 'Not Available'; 
-  return row.dateAction.toLocaleDateString() + ' ' + row.dateAction.toLocaleTimeString();
-}
+
 const paginationModel = { page: 0, pageSize: 5 };
 
 function LegalAction() {
@@ -60,6 +38,7 @@ function LegalAction() {
     try {
       const data = await getCases();
       setCases(data);
+      console.log('cases', data)
     } catch (error) {
       console.error('Error fetching cases:', error);
     }
@@ -69,14 +48,35 @@ function LegalAction() {
   const handleClickOpen = () => {
     setOpen(true);
   };
-
+  const columns: GridColDef[] = [
+    { field: 'actionTaken', headerName: 'Action Taken', width: 250 },
+    { field: 'dateAction', headerName: 'Date Action', width: 180, valueGetter: (dateAction: number) => getDateAction(dateAction),},
+    { field: 'evidenceDetails', headerName: 'Evidence Details', width: 250},
+    { field: 'id',
+        headerName: 'Case',
+        width: 160,
+        valueGetter: (legalActionId: number) => getCaseName(legalActionId),
+      },
+  ];
+  
+  const getDateAction = (dateAction: number) => {
+    const timestamp = new Date(Number(dateAction));
+    console.log('getDateAction::timestamp', timestamp)
+    if(!timestamp) return 'Not Available'; 
+    return timestamp.toLocaleDateString() + ' ' + timestamp.toLocaleTimeString();
+  }
+  const getCaseName = (legalActionId: number) => {
+    const assignedCase = cases.find((c) => c.legalAction?.id === legalActionId);
+    if(!assignedCase || !assignedCase.description) return 'Not Available'; 
+    return assignedCase.description;
+  }
   const handleClose = () => {
     setOpen(false);
   };
   const [actionTaken, setActionTaken] = useState<string>('');
-  const [dateAction, setDateAction] = useState<Date>(new Date());
   const [evidenceDetails, setEvidenceDetails] = useState<string>('');
   const [caseObj, setCaseObj] = useState<CaseType>({} as CaseType);
+  const [caseId, setCaseId] = useState<string>('-1');
   const handleChangeActionTaken = (event: React.ChangeEvent<HTMLInputElement>) => {
     setActionTaken(event.target.value);
   };
@@ -84,15 +84,20 @@ function LegalAction() {
     setEvidenceDetails(event.target.value);
   };
   const handleChangeCaseObj = (event: SelectChangeEvent) => {
-    const selectedCase = cases.find((caseObj) => caseObj.id === Number(event.target.value));
-    if (selectedCase)
+    console.log('cases', cases, 'event.target.value', event.target.value)
+    const selectedCase = cases.find((c) => c.id === Number(event.target.value));
+    setCaseId(event.target.value);
+    console.log('selectedCase', selectedCase)
+    if (selectedCase) {
+      setCaseId(selectedCase.id?.toString() || '');
       setCaseObj(selectedCase);
+    }
   };
   return (
     <div className="App">
       <div style={{ display: 'flex'}}>
         <div style={{ flexGrow: 1}}>
-          <h1>Victims</h1>
+          <h1>Legal Actions</h1>
         </div>
         <div style={{ flexGrow: 0, marginTop: 15, marginRight: 15}}>
           <IconButton color="primary" onClick={handleClickOpen}>
@@ -110,11 +115,13 @@ function LegalAction() {
               event.preventDefault();
               const formData = new FormData(event.currentTarget);
               const formJson = Object.fromEntries((formData as any).entries());
+              const filteredCases = cases.filter((c) => c.id === Number(caseId));
+              console.log('filteredCases', filteredCases)
               const legalAction = {
                 actionTaken: formJson.actionTaken,
                 dateAction: new Date(),
                 evidenceDetails: formJson.evidenceDetails,
-                caseObj
+                caseObj: filteredCases.length > 0 ? filteredCases[0] : undefined,
               }
 
               saveLegalAction(legalAction)
@@ -123,6 +130,13 @@ function LegalAction() {
                 handleClose();
                 setActionTaken('');
                 setEvidenceDetails('');
+                const caseObjSave = {...caseObj, legalAction: response}
+                console.log('caseObjSave', caseObjSave)
+                saveCase(caseObjSave)
+                .then((caseResponse) => {
+                  console.log('caseResponse', caseResponse) 
+                  fetchCases();
+                })
                 setCaseObj({} as CaseType);
                 fetchLegalActions();
               });
@@ -159,9 +173,9 @@ function LegalAction() {
           <InputLabel id="case-label">Case</InputLabel>
           <Select
             labelId="case-label"
-            id="caseObj"
-            name="caseObj"
-            value={caseObj?.id?.toString()}
+            id="caseId"
+            name="caseId"
+            value={caseId}
             label="Case"
             fullWidth
             onChange={handleChangeCaseObj}
@@ -169,9 +183,10 @@ function LegalAction() {
           >
             {
               // Map through the cases and create a MenuItem for each one
+              cases && cases.length > 0 &&
               cases.map((c) => (
                 <MenuItem key={c.id} value={c.id}>
-                  {c.name}
+                  {c.description}
                 </MenuItem>
               ))
             }
