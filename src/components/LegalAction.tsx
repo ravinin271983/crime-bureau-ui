@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {getCases, getLegalActions, saveCase, saveLegalAction} from '../services/backend-services';
+import {getCases, getLegalActions, saveCase, saveLegalAction, deleteLegalAction} from '../services/backend-services';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Paper from '@mui/material/Paper';  
 import Button from '@mui/material/Button';
@@ -16,7 +16,8 @@ import InputLabel from '@mui/material/InputLabel';
 import CaseType from '../types/CaseType';
 import LegalActionType from '../types/LegalActionType';
 
-
+import CreateIcon from '@mui/icons-material/Create';
+import DeleteIcon from '@mui/icons-material/Delete';
 const paginationModel = { page: 0, pageSize: 5 };
 
 function LegalAction() {
@@ -51,22 +52,64 @@ function LegalAction() {
   const columns: GridColDef[] = [
     { field: 'actionTaken', headerName: 'Action Taken', width: 250 },
     { field: 'dateAction', headerName: 'Date Action', width: 180, valueGetter: (dateAction: number) => getDateAction(dateAction),},
-    { field: 'evidenceDetails', headerName: 'Evidence Details', width: 250},
     { field: 'id',
-        headerName: 'Case',
-        width: 160,
-        valueGetter: (legalActionId: number) => getCaseName(legalActionId),
-      },
+      headerName: 'Case',
+      width: 160,
+      valueGetter: (legalActionId: number) => getCaseName(legalActionId),
+    },{
+      field: 'actions',
+      headerName: 'Actions',
+      width: 250,
+      renderCell: (params) => (
+        <>
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            style={{ marginRight: 10 }}
+            onClick={() => handleEdit(params.row)}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            size="small"
+            onClick={() => handleDelete(params.row.id)}
+          >
+            Delete
+          </Button>
+        </>
+      ),
+    },
   ];
-  
+  const handleEdit = (row: LegalActionType) => {
+    // Populate the form with the selected row's data for editing
+    setActionTaken(row.actionTaken);
+    setId(row.id?.toString() || '');
+    if (row.caseObj) {
+      setCaseId(row.caseObj?.id?.toString() || '');
+    }
+    setOpen(true); // Open the dialog for editing
+  };
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this case?')) {
+      try {
+        await deleteLegalAction(id); // Call the delete API (you need to implement this in your backend service)
+        fetchLegalActions(); // Refresh the list of cases
+      } catch (error) {
+        console.error('Error deleting case:', error);
+      }
+    }
+  };
   const getDateAction = (dateAction: number) => {
     const timestamp = new Date(Number(dateAction));
-    console.log('getDateAction::timestamp', timestamp)
+    // console.log('getDateAction::timestamp', timestamp)
     if(!timestamp) return 'Not Available'; 
     return timestamp.toLocaleDateString() + ' ' + timestamp.toLocaleTimeString();
   }
   const getCaseName = (legalActionId: number) => {
-    const assignedCase = cases.find((c) => c.legalAction?.id === legalActionId);
+    const assignedCase = cases.find((c) => c.legalActionId === legalActionId);
     if(!assignedCase || !assignedCase.description) return 'Not Available'; 
     return assignedCase.description;
   }
@@ -74,20 +117,17 @@ function LegalAction() {
     setOpen(false);
   };
   const [actionTaken, setActionTaken] = useState<string>('');
-  const [evidenceDetails, setEvidenceDetails] = useState<string>('');
   const [caseObj, setCaseObj] = useState<CaseType>({} as CaseType);
   const [caseId, setCaseId] = useState<string>('-1');
+  const [id, setId] = useState<string>('-1');
   const handleChangeActionTaken = (event: React.ChangeEvent<HTMLInputElement>) => {
     setActionTaken(event.target.value);
   };
-  const handleChangeEvidenceDetails = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setEvidenceDetails(event.target.value);
-  };
   const handleChangeCaseObj = (event: SelectChangeEvent) => {
-    console.log('cases', cases, 'event.target.value', event.target.value)
+    // console.log('cases', cases, 'event.target.value', event.target.value)
     const selectedCase = cases.find((c) => c.id === Number(event.target.value));
     setCaseId(event.target.value);
-    console.log('selectedCase', selectedCase)
+    // console.log('selectedCase', selectedCase)
     if (selectedCase) {
       setCaseId(selectedCase.id?.toString() || '');
       setCaseObj(selectedCase);
@@ -115,30 +155,21 @@ function LegalAction() {
               event.preventDefault();
               const formData = new FormData(event.currentTarget);
               const formJson = Object.fromEntries((formData as any).entries());
-              const filteredCases = cases.filter((c) => c.id === Number(caseId));
-              console.log('filteredCases', filteredCases)
+              // console.log('filteredCases', filteredCases)
               const legalAction = {
+                id: id? Number(id) : undefined,
+                caseId: caseId?caseId : undefined,
                 actionTaken: formJson.actionTaken,
                 dateAction: new Date(),
-                evidenceDetails: formJson.evidenceDetails,
-                caseObj: filteredCases.length > 0 ? filteredCases[0] : undefined,
               }
 
               saveLegalAction(legalAction)
               .then((response) => {
-                console.log('response', response) 
+                // console.log('response', response) 
                 handleClose();
                 setActionTaken('');
-                setEvidenceDetails('');
-                const caseObjSave = {...caseObj, legalAction: response}
-                console.log('caseObjSave', caseObjSave)
-                saveCase(caseObjSave)
-                .then((caseResponse) => {
-                  console.log('caseResponse', caseResponse) 
-                  fetchCases();
-                })
-                setCaseObj({} as CaseType);
                 fetchLegalActions();
+                fetchCases();
               });
             },
           },
@@ -159,33 +190,21 @@ function LegalAction() {
             variant="standard"
             style={{ marginBottom: 15 }}
           />
-          <TextField
-            id="evidenceDetails"
-            name="evidenceDetails"
-            value={evidenceDetails}
-            onChange={handleChangeEvidenceDetails}
-            label="Evidence Details"
-            type="evidenceDetails"
-            fullWidth
-            variant="standard"
-            style={{ marginBottom: 15 }}
-          />
           <InputLabel id="case-label">Case</InputLabel>
           <Select
             labelId="case-label"
-            id="caseId"
-            name="caseId"
-            value={caseId}
+            id="caseObj"
+            name="caseObj"
+            value={caseObj?.id?.toString()}
             label="Case"
             fullWidth
             onChange={handleChangeCaseObj}
             style={{ marginBottom: 15 }}
           >
             {
-              // Map through the cases and create a MenuItem for each one
-              cases && cases.length > 0 &&
+              // Map through the investigating officers and create a MenuItem for each one
               cases.map((c) => (
-                <MenuItem key={c.id} value={c.id}>
+                <MenuItem key={c.id?.toString()} value={c.id?.toString()}>
                   {c.description}
                 </MenuItem>
               ))
@@ -202,8 +221,7 @@ function LegalAction() {
           rows={legalActions}
           columns={columns}
           initialState={{ pagination: { paginationModel } }}
-          pageSizeOptions={[5, 10]}
-          checkboxSelection
+          pageSizeOptions={[5, 10, 25]}
           sx={{ border: 0 }}
         />
       </Paper>

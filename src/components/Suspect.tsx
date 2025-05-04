@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {getCases, getSuspects, saveSuspect} from '../services/backend-services';
+import {getCases, getSuspects, saveSuspect, deleteSuspect} from '../services/backend-services';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Paper from '@mui/material/Paper';  
 import Button from '@mui/material/Button';
@@ -17,24 +17,6 @@ import InputLabel from '@mui/material/InputLabel';
 import CaseType from '../types/CaseType';
 import SuspectType from '../types/SuspectType';
 
-const columns: GridColDef[] = [
-  { field: 'name', headerName: 'Name', width: 130 },
-  { field: 'age', headerName: 'Age', width: 120},
-  { field: 'gender', headerName: 'Gender', width: 120},
-  { field: 'address', headerName: 'Address', width: 250},
-  { field: 'crimeHistory', headerName: 'Crime History', width: 250},
-  { field: 'caseObj',
-      headerName: 'Case',
-      width: 160,
-      valueGetter: (row: SuspectType) => getCaseName(row),
-    },
-];
-const getCaseName = (row: SuspectType) => {
-  console.log('row', row)
-  if(!row || !row.caseObj) return 'Not Assigned'; 
-  return row.caseObj?.description;
-}
-const paginationModel = { page: 0, pageSize: 5 };
 
 function Suspect() {
   const [suspects, setSuspects] = useState<SuspectType[]>([]);
@@ -73,8 +55,8 @@ function Suspect() {
   const [address, setAddress] = useState<string>('');
   const [age, setAge] = useState<string>('');
   const [crimeHistory, setCrimeHistory] = useState<string>('');
-
-  const [caseObj, setCaseObj] = useState<CaseType>({} as CaseType);
+  const [caseId, setCaseId] = useState<string>('-1');
+  const [id, setId] = useState<string>('-1');
   const handleChangeName = (event: React.ChangeEvent<HTMLInputElement>) => {
     setName(event.target.value);
   };
@@ -90,11 +72,74 @@ function Suspect() {
   const handleChangeCrimeHistory = (event: React.ChangeEvent<HTMLInputElement>) => {
     setCrimeHistory(event.target.value);
   };
-  const handleChangeCaseObj = (event: SelectChangeEvent) => {
-    const selectedCase = cases.find((caseObj) => caseObj.id === Number(event.target.value));
-    if (selectedCase)
-      setCaseObj(selectedCase);
-  };
+  const columns: GridColDef[] = [
+    { field: 'name', headerName: 'Name', width: 130 },
+    { field: 'age', headerName: 'Age', width: 120},
+    { field: 'gender', headerName: 'Gender', width: 120},
+    { field: 'address', headerName: 'Address', width: 250},
+    { field: 'crimeHistory', headerName: 'Crime History', width: 250},
+    { field: 'caseId',
+        headerName: 'Case',
+        width: 160,
+        valueGetter: (caseId: number) => getCaseName(caseId),
+    },{
+      field: 'actions',
+      headerName: 'Actions',
+      width: 250,
+      renderCell: (params) => (
+        <>
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            style={{ marginRight: 10 }}
+            onClick={() => handleEdit(params.row)}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            size="small"
+            onClick={() => handleDelete(params.row.id)}
+          >
+            Delete
+          </Button>
+        </>
+      ),
+    },
+  ];
+  const handleEdit = (row: SuspectType) => {
+      // Populate the form with the selected row's data for editing
+      setName(row.name || '');
+      setGender (row.gender);
+      setAddress(row.address || '');
+      setAge(row.age || '');
+      setCrimeHistory(row.crimeHistory || '');
+      setId(row.id?.toString() || '');
+      if (row.caseId) {
+        setCaseId(row.caseId?.toString() || '');
+      }
+      setOpen(true); // Open the dialog for editing
+    };
+    const handleDelete = async (id: string) => {
+      if (window.confirm('Are you sure you want to delete this case?')) {
+        try {
+          await deleteSuspect(id); // Call the delete API (you need to implement this in your backend service)
+          fetchSuspect(); // Refresh the list of cases
+        } catch (error) {
+          console.error('Error deleting case:', error);
+        }
+      }
+    };
+  const getCaseName = (caseId: number) => {
+    console.log('caseId', caseId)
+    const suspectCase = cases.find((c) => c.id === caseId);
+    if(!suspectCase) return 'Not Assigned';
+    return suspectCase?.description;
+  }
+  const paginationModel = { page: 0, pageSize: 5 };
+  
   return (
     <div className="App">
       <div style={{ display: 'flex'}}>
@@ -118,6 +163,8 @@ function Suspect() {
               const formData = new FormData(event.currentTarget);
               const formJson = Object.fromEntries((formData as any).entries());
               const suspect = {
+                id: id? Number(id) : undefined,
+                caseId: caseId? Number(caseId) : undefined,
                 name: formJson.name,
                 gender: formJson.gender,
                 address: formJson.address,
@@ -134,14 +181,15 @@ function Suspect() {
                 setAge('');
                 setAddress('');
                 setCrimeHistory('');
-                setCaseObj({} as CaseType);
+                setCaseId('-1');
+                setId('-1');
                 fetchSuspect();
               });
             },
           },
         }}
       >
-        <DialogTitle>Add Suspect</DialogTitle>
+        <DialogTitle>{!id || id==='-1'?'Add Suspect':'Modify Suspect'}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -202,26 +250,6 @@ function Suspect() {
             variant="standard"
             style={{ marginBottom: 15 }}
           />
-          <InputLabel id="case-label">Case</InputLabel>
-          <Select
-            labelId="case-label"
-            id="caseObj"
-            name="caseObj"
-            value={caseObj?.id?.toString()}
-            label="Case"
-            fullWidth
-            onChange={handleChangeCaseObj}
-            style={{ marginBottom: 15 }}
-          >
-            {
-              // Map through the cases and create a MenuItem for each one
-              cases.map((c) => (
-                <MenuItem key={c.id} value={c.id}>
-                  {c.name}
-                </MenuItem>
-              ))
-            }
-          </Select>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
@@ -234,7 +262,6 @@ function Suspect() {
           columns={columns}
           initialState={{ pagination: { paginationModel } }}
           pageSizeOptions={[5, 10]}
-          checkboxSelection
           sx={{ border: 0 }}
         />
       </Paper>

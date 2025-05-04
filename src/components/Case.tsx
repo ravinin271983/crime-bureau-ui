@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {getCases, saveCase, getInvestigatingOfficers, getEvidences, getSuspects, getVictims} from '../services/backend-services';
+import {getCases, saveCase, deleteCase, getInvestigatingOfficers, getEvidences, getSuspects, getVictims} from '../services/backend-services';
 import CaseType from '../types/CaseType';
 import InvestigatingOfficerType from '../types/InvestigatingOfficerType';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
@@ -20,53 +20,7 @@ import SuspectType from '../types/SuspectType';
 import VictimType from '../types/VictimType';
 import Checkbox from '@mui/material/Checkbox';
 import ListItemText from '@mui/material/ListItemText';
-import { daDK } from '@mui/material/locale';
-const columns: GridColDef[] = [
-  { field: 'description', headerName: 'Description', width: 130 },
-  { field: 'status', headerName: 'Status', width: 90},
-  { field: 'dateReported', headerName: 'Date Reported', width: 120, valueGetter: (value) => new Date(value).toLocaleDateString() },
-  { field: 'investigatingOfficer',
-    headerName: 'Investigating Officer',
-    width: 160,
-    valueGetter: (row: InvestigatingOfficerType) => getOfficerName(row),
-  },
-  { field: 'evidences',
-    headerName: 'Evidences',
-    width: 160,
-    valueGetter: (row: EvidenceType[]) => getEvidencesType(row),
-  },
-  { field: 'suspects',
-    headerName: 'Suspects',
-    width: 160,
-    valueGetter: (row: SuspectType[]) => getSuspectType(row),
-  },
-  { field: 'victims',
-    headerName: 'Victims',
-    width: 160,
-    valueGetter: (row: VictimType[]) => getVictimType(row),
-  },
-];
-const paginationModel = { page: 0, pageSize: 5 };
-const getOfficerName = (row: InvestigatingOfficerType) => {
-  //console.log('getOfficerName:row', row)
-  if(!row || !row.name) return 'Not Assigned';
-  return row.name;
-}
-const getEvidencesType = (row: EvidenceType[]) => {
-  //console.log('getEvidencesType:row', row)
-  if(!row || row.length ===0 ) return 'Not Assigned';
-  return row.map(e => e.evidenceType).join(', ');
-}
-const getSuspectType = (row: SuspectType[]) => {
-  //console.log('getEvidencesType:row', row)
-  if(!row || row.length ===0 ) return 'Not Assigned';
-  return row.map(s => s.name).join(', ');
-}
-const getVictimType = (row: VictimType[]) => {
-  //console.log('getEvidencesType:row', row)
-  if(!row || row.length ===0 ) return 'Not Assigned';
-  return row.map(v => v.name).join(', ');
-}
+
 function Case() {
   const [cases, setCases] = useState<CaseType[]>([]);
   const [investigatingOfficers, setInvestigatingOfficers] = useState<InvestigatingOfficerType[]>([]);
@@ -84,6 +38,7 @@ function Case() {
     fetchEvidences();
     fetchSuspects();
     fetchVictims();
+
   }, []);
   const fetchCases = async () => {
     try {
@@ -134,7 +89,7 @@ function Case() {
   const handleClose = () => {
     setOpen(false);
   };
-  const [name, setName] = useState<string>('');
+  const [caseId, setCaseId] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [investigatingOfficerId, setInvestigatingOfficerId] = useState<string>('-1');
   const [selectedEvidences, setSelectedEvidences] = useState<string[]>([]);
@@ -142,8 +97,8 @@ function Case() {
   const [selectedSuspects, setSelectedSuspects] = useState<string[]>([]);
   const handleChangeSelectedEvidences = (event: SelectChangeEvent<string[]>) => {
     const selectedEvidenceId = event.target.value;
+    // console.log('handleChangeSelectedEvidences::selectedEvidenceId', selectedEvidenceId);    
     typeof selectedEvidenceId === 'string' ? setSelectedEvidences([selectedEvidenceId]) : setSelectedEvidences(selectedEvidenceId);
-    //console.log('handleChangeSelectedEvidences::selectedEvidenceId', selectedEvidenceId);
   };
   const handleChangeSelectedVictims = (event: SelectChangeEvent<string[]>) => {
     const selectedVictimId = event.target.value;
@@ -152,11 +107,9 @@ function Case() {
   };
   const handleChangeSelectedSuspects = (event: SelectChangeEvent<string[]>) => {
     const selectedSuspectId = event.target.value;
+    console.log('selectedSuspectId', selectedSuspectId);
     typeof selectedSuspectId === 'string' ? setSelectedSuspects([selectedSuspectId]) : setSelectedSuspects(selectedSuspectId);
-    //console.log('selectedSuspectId', selectedSuspectId);
-  };
-  const handleChangeName = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setName(event.target.value);
+    
   };
   const handleChangeDescription = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setDescription(event.target.value);
@@ -165,7 +118,7 @@ function Case() {
     setInvestigatingOfficerId(event.target.value);
   };
   const isCheckedEvidence = (evidenceType: string) => {
-    //console.log('isCheckedEvidence::selectedEvidences', selectedEvidences, 'evidenceType', evidenceType);
+    // console.log('isCheckedEvidence::selectedEvidences', selectedEvidences, 'evidenceType', evidenceType);
     if(!selectedEvidences || selectedEvidences.length === 0) return false;
     return selectedEvidences.filter(e => e.toString() === evidenceType).length > 0; 
   }
@@ -178,6 +131,105 @@ function Case() {
     // console.log('selectedSuspects', selectedSuspects, 'name', name);
     if(!selectedSuspects || selectedSuspects.length === 0) return false;
     return selectedSuspects.filter(e => e.toString() === name).length > 0; 
+  }
+  const columns: GridColDef[] = [
+    { field: 'description', headerName: 'Description', width: 130 },
+    { field: 'status', headerName: 'Status', width: 90},
+    { field: 'dateReported', headerName: 'Date Reported', width: 120, valueGetter: (value) => new Date(value).toLocaleDateString() },
+    { field: 'investigatingOfficerId',
+      headerName: 'Investigating Officer',
+      width: 160,
+      valueGetter: (investigatingOfficerId: number) => getOfficerName(investigatingOfficerId),
+    },
+    { field: 'evidenceIds',
+      headerName: 'Evidences',
+      width: 160,
+      valueGetter: (evidenceIds: number[]) => getEvidencesType(evidenceIds),
+    },
+    { field: 'suspectIds',
+      headerName: 'Suspects',
+      width: 160,
+      valueGetter: (suspectIds: number[]) => getSuspectType(suspectIds),
+    },
+    { field: 'victimIds',
+      headerName: 'Victims',
+      width: 160,
+      valueGetter: (victimIds: number[]) => getVictimType(victimIds),
+    },{
+      field: 'actions',
+      headerName: 'Actions',
+      width: 250,
+      renderCell: (params) => (
+        <>
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            style={{ marginRight: 10 }}
+            onClick={() => handleEdit(params.row)}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            size="small"
+            onClick={() => handleDelete(params.row.id)}
+          >
+            Delete
+          </Button>
+        </>
+      ),
+    },
+  ];
+  const handleEdit = (row: CaseType) => {
+    // Populate the form with the selected row's data for editing
+    setDescription(row.description || '');
+    setInvestigatingOfficerId(row.investigatingOfficerId?.toString() || '-1');
+    setSelectedEvidences(row.evidenceIds?.map((eId) => eId?.toString() || '') || []);
+    setSelectedVictims(row.victimIds?.map((vId) => vId?.toString() || '') || []);
+    setSelectedSuspects(row.suspectIds?.map((sId) => sId?.toString() || '') || []);
+    setCaseId(row.id?.toString() || '');
+    setOpen(true); // Open the dialog for editing
+  };
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this case?')) {
+      try {
+        await deleteCase(id); // Call the delete API (you need to implement this in your backend service)
+        fetchCases(); // Refresh the list of cases
+      } catch (error) {
+        console.error('Error deleting case:', error);
+      }
+    }
+  };
+  const paginationModel = { page: 0, pageSize: 5 };
+  const getOfficerName = (investigatingOfficerId: number) => {
+    // console.log('getOfficerName:investigatingOfficerId', investigatingOfficerId, 'investigatingOfficers', investigatingOfficers)
+    const officer = investigatingOfficers.find((officer) => officer.id === investigatingOfficerId);
+    // console.log('getOfficerName:officer', officer)
+    if(!officer) return 'Not Assigned';
+    return officer.name;
+  }
+  const getEvidencesType = (evidenceIds: number[]) => {
+    // console.log('getEvidencesType:evidenceIds', evidenceIds)
+    if (!evidenceIds || evidenceIds.length ===0 ) return 'Not Assigned';
+    const caseEvidences = cases.find(c => c.evidenceIds?.find(eId => eId === evidenceIds[0]) !== undefined)?.evidenceIds?.map(eId => evidences.find(e => e.id === eId)).filter(e => e !== undefined) as EvidenceType[];
+    if (!caseEvidences || caseEvidences.length ===0 ) return 'Not Assigned';
+    return caseEvidences.map(e => e.evidenceDetails).join(', ');
+  }
+  const getSuspectType = (suspectIds: number[]) => {
+    //console.log('getEvidencesType:row', row)
+    if (!suspectIds || suspectIds.length ===0 ) return 'Not Assigned';
+    const caseSuspects = suspectIds.map(sId => suspects.find(s => s.id === sId)).filter(e => e !== undefined) as SuspectType[];
+    if (!caseSuspects || caseSuspects.length ===0 ) return 'Not Assigned';
+    return caseSuspects.map(s => s.name).join(', ');
+  }
+  const getVictimType = (victimIds: number[]) => {
+    //console.log('getEvidencesType:row', row)
+    if (!victimIds || victimIds.length ===0 ) return 'Not Assigned';
+    const caseVictims = victimIds.map(vId => victims.find(v => v.id === vId)).filter(e => e !== undefined) as VictimType[];
+    if (!caseVictims || caseVictims.length ===0 ) return 'Not Assigned';
+    return caseVictims.map(v => v.name).join(', ');
   }
   return (
       <div className="App">
@@ -193,6 +245,8 @@ function Case() {
         </div>
         <Dialog
           open={open}
+          fullWidth
+          maxWidth="md"
           onClose={handleClose}
           slotProps={{
             paper: {
@@ -201,26 +255,25 @@ function Case() {
                 event.preventDefault();
                 const formData = new FormData(event.currentTarget);
                 const formJson = Object.fromEntries((formData as any).entries());
-                const filteredEvidences = evidences.filter(e => selectedEvidences.find(eId => eId.toString() === e.id?.toString()) !== undefined);
+                const filteredEvidences = evidences.filter(e => selectedEvidences.find(eId => eId.toString() === e.id?.toString()) !== undefined).map(e => e.id);
                 const filteredInvestigatingOfficer = investigatingOfficers.filter(i => i.id?.toString() === investigatingOfficerId.toString ());
-                const filteredSuspects = suspects.filter(s => selectedSuspects.find(sId => sId.toString() === s.id?.toString()) !== undefined);
-                const filteredVictims = victims.filter(v => selectedVictims.find(vId => vId.toString() === v.id?.toString()) !== undefined);
+                const filteredSuspects = suspects.filter(s => selectedSuspects.find(sId => sId.toString() === s.id?.toString()) !== undefined).map(s => s.id);
+                const filteredVictims = victims.filter(v => selectedVictims.find(vId => vId.toString() === v.id?.toString()) !== undefined).map(v => v.id);
                 const caseObj = {
-                  name: formJson.name,
+                  id: caseId?Number(caseId):undefined,
                   description: formJson.description,
-                  investigatingOfficer: filteredInvestigatingOfficer && filteredInvestigatingOfficer.length > 0 ? filteredInvestigatingOfficer[0] : undefined,
-                  suspects: filteredSuspects,
-                  victims: filteredVictims,
+                  investigatingOfficerId: filteredInvestigatingOfficer && filteredInvestigatingOfficer.length > 0 ? filteredInvestigatingOfficer[0].id : undefined,
+                  suspectIds: filteredSuspects,
+                  victimIds: filteredVictims,
                   status: 'OPEN',
                   dateReported: new Date(),
-                  evidences: filteredEvidences,
+                  evidenceIds: filteredEvidences,
                   legalAction: undefined,
                 };
-                console.log('caseObj', caseObj);
+                // console.log('caseObj', caseObj);
                 saveCase(caseObj)
                   .then((response) => {
                     handleClose();
-                    setName('');
                     setDescription('');
                     setInvestigatingOfficerId('-1');
                     setSelectedEvidences([]);
@@ -237,19 +290,6 @@ function Case() {
           <DialogTitle>Add Case</DialogTitle>
           <DialogContent>
             <TextField
-              autoFocus
-              required
-              id="name"
-              name="name"
-              value={name}
-              onChange={handleChangeName}
-              label="Name"
-              type="name"
-              fullWidth
-              variant="standard"
-              style={{ marginBottom: 15 }}
-            />
-            <TextField
               id="description"
               name="description"
               value={description}
@@ -260,7 +300,7 @@ function Case() {
               fullWidth
               rows={4}
               defaultValue="Case description"
-              style={{ marginBottom: 15 }}
+              style={{ marginBottom: 15, marginTop: 15 }}
             />
             <InputLabel id="investigatingOfficerId-label">Investigating Officer</InputLabel>
             <Select
@@ -294,7 +334,7 @@ function Case() {
                 const selectedEvidences = evidences.filter(e => {
                   return selectedEvidenceIds.indexOf(e.id?e.id.toString():'') > -1
                 });
-                return selectedEvidences.map(e => e.evidenceType).join(', ');
+                return selectedEvidences.map(e => e.evidenceDetails).join(', ');
               }}
               label="Evidences"
               fullWidth
@@ -303,10 +343,10 @@ function Case() {
             >
               {
                 // Map through the investigating officers and create a MenuItem for each one
-                evidences.map((evidence) => (
-                  <MenuItem key={evidence.id} value={evidence.id}>
+                evidences.filter(e => e.caseObj === undefined).map((evidence) => (
+                  <MenuItem key={evidence.id} value={evidence.id?.toString()}>
                     <Checkbox checked={evidence.id?isCheckedEvidence(evidence.id.toString()):false} />
-                    <ListItemText primary={evidence.evidenceType} />
+                    <ListItemText primary={evidence.evidenceDetails} />
                   </MenuItem>
                 ))
               }
@@ -365,7 +405,7 @@ function Case() {
               {
                 // Map through the victims and create a MenuItem for each one
                 suspects.map((suspect) => (
-                  <MenuItem key={suspect.id} value={suspect.id}>
+                  <MenuItem key={suspect.id?.toString()} value={suspect.id?.toString()}>
                     <Checkbox checked={suspect.id?isCheckedSuspect(suspect.id.toString()):false} />
                     <ListItemText primary={suspect.name} />
                   </MenuItem>

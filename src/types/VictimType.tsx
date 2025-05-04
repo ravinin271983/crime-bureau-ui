@@ -3,7 +3,7 @@ import CaseType from "./CaseType";
 interface VictimType {
     id?: number;
     name: string;
-    contactNo: Date;
+    contactNo: string;
     address: string;
     caseObj?: CaseType;
     caseId?: number;

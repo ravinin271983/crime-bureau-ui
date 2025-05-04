@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import InvestigatingOfficerType from '../types/InvestigatingOfficerType';
-import {getInvestigatingOfficers, saveInvestigatingOfficer} from '../services/backend-services';
+import {getInvestigatingOfficers, saveInvestigatingOfficer, deleteInvestigatingOfficer} from '../services/backend-services';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Paper from '@mui/material/Paper';  
 import Button from '@mui/material/Button';
@@ -12,13 +12,6 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import PlusIcon from '@mui/icons-material/Add';
-
-const columns: GridColDef[] = [
-  { field: 'name', headerName: 'Name', width: 130 },
-  { field: 'contact', headerName: 'Contact', width: 120},
-  { field: 'role', headerName: 'role', width: 150},
-  { field: 'dept', headerName: 'Department', width: 160},];
-const paginationModel = { page: 0, pageSize: 5 };
 
 function InvestigatingOfficer() {
   const [investigatingOfficers, setInvestigatingOfficers] = useState<InvestigatingOfficerType[]>([]);
@@ -46,6 +39,7 @@ function InvestigatingOfficer() {
   const [contact, setContact] = useState<string>('');
   const [role, setRole] = useState<string>('');
   const [dept, setDept] = useState<string>('');
+  const [id, setId] = useState<string>('');
   const handleChangeName = (event: React.ChangeEvent<HTMLInputElement>) => {
     setName(event.target.value);
   };
@@ -59,6 +53,59 @@ function InvestigatingOfficer() {
   const handleChangeRole = (event: React.ChangeEvent<HTMLInputElement>) => {
     setRole(event.target.value as string);
   };
+  const columns: GridColDef[] = [
+    { field: 'name', headerName: 'Name', width: 130 },
+    { field: 'contact', headerName: 'Contact', width: 120},
+    { field: 'role', headerName: 'role', width: 150},
+    { field: 'dept', headerName: 'Department', width: 160},
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 250,
+      renderCell: (params) => (
+        <>
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            style={{ marginRight: 10 }}
+            onClick={() => handleEdit(params.row)}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            size="small"
+            onClick={() => handleDelete(params.row.id)}
+          >
+            Delete
+          </Button>
+        </>
+      ),
+    },
+  ];
+  const handleEdit = (row: InvestigatingOfficerType) => {
+        // Populate the form with the selected row's data for editing
+        console.log('handleEdit::row', row)
+        setName(row.name || '');
+        setDept(row.dept || '');
+        setRole(row.role || '');
+        setContact(row.contact?.toString() || '');
+        setId(row.id?.toString() || '');
+        setOpen(true); // Open the dialog for editing
+    };
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this investigating officer?')) {
+      try {
+        await deleteInvestigatingOfficer(id); // Call the delete API (implement this in your backend service)
+        fetchInvestigatingOfficers(); // Refresh the list of investigating officers
+      } catch (error) {
+        console.error('Error deleting investigating officer:', error);
+      }
+    }
+  };
+  const paginationModel = { page: 0, pageSize: 5 };
   return (
       <div className="App">
         <div style={{ display: 'flex'}}>
@@ -82,6 +129,7 @@ function InvestigatingOfficer() {
                 const formData = new FormData(event.currentTarget);
                 const formJson = Object.fromEntries((formData as any).entries());
                 const officer = {
+                  id: id? Number(id) : undefined,
                   name: formJson.name,
                   contact: formJson.contact,
                   role: formJson.role,
@@ -161,7 +209,6 @@ function InvestigatingOfficer() {
             columns={columns}
             initialState={{ pagination: { paginationModel } }}
             pageSizeOptions={[5, 10]}
-            checkboxSelection
             sx={{ border: 0 }}
           />
         </Paper>

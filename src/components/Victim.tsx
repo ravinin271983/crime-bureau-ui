@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {getCases, getVictims, saveVictim} from '../services/backend-services';
+import {getCases, getVictims, saveVictim, deleteVictim} from '../services/backend-services';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Paper from '@mui/material/Paper';  
 import Button from '@mui/material/Button';
@@ -16,22 +16,6 @@ import InputLabel from '@mui/material/InputLabel';
 import CaseType from '../types/CaseType';
 import VictimType from '../types/VictimType';
 
-const columns: GridColDef[] = [
-  { field: 'name', headerName: 'Name', width: 130 },
-  { field: 'contactNo', headerName: 'Contact No', width: 120},
-  { field: 'address', headerName: 'Address', width: 250},
-  { field: 'caseObj',
-      headerName: 'Case',
-      width: 160,
-      valueGetter: (row: VictimType) => getCaseName(row),
-    },
-];
-const getCaseName = (row: VictimType) => {
-  console.log('row', row)
-  if(!row || !row.caseObj) return 'Not Assigned'; 
-  return row.caseObj?.description;
-}
-const paginationModel = { page: 0, pageSize: 5 };
 
 function Victim() {
   const [victims, setVictims] = useState<VictimType[]>([]);
@@ -59,6 +43,11 @@ function Victim() {
   const [open, setOpen] = React.useState(false);
 
   const handleClickOpen = () => {
+    setCaseId('-1');
+    setName('');
+    setContactNo('');
+    setAddress('');
+    setId('-1');
     setOpen(true);
   };
 
@@ -68,7 +57,8 @@ function Victim() {
   const [name, setName] = useState<string>('');
   const [contactNo, setContactNo] = useState<string>('');
   const [address, setAddress] = useState<string>('');
-  const [caseObj, setCaseObj] = useState<CaseType>({} as CaseType);
+  const [caseId, setCaseId] = useState<string>('-1');
+  const [id, setId] = useState<string>('-1');
   const handleChangeName = (event: React.ChangeEvent<HTMLInputElement>) => {
     setName(event.target.value);
   };
@@ -78,11 +68,67 @@ function Victim() {
   const handleChangeAddress = (event: React.ChangeEvent<HTMLInputElement>) => {
     setAddress(event.target.value);
   };
-  const handleChangeCaseObj = (event: SelectChangeEvent) => {
-    const selectedCase = cases.find((caseObj) => caseObj.id === Number(event.target.value));
-    if (selectedCase)
-      setCaseObj(selectedCase);
+  const columns: GridColDef[] = [
+    { field: 'name', headerName: 'Name', width: 130 },
+    { field: 'contactNo', headerName: 'Contact No', width: 120},
+    { field: 'address', headerName: 'Address', width: 250},
+    { field: 'caseId',
+        headerName: 'Case',
+        width: 160,
+        valueGetter: (caseId: number) => getCaseName(caseId),
+    },{
+      field: 'actions',
+      headerName: 'Actions',
+      width: 250,
+      renderCell: (params) => (
+        <>
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            style={{ marginRight: 10 }}
+            onClick={() => handleEdit(params.row)}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            size="small"
+            onClick={() => handleDelete(params.row.id)}
+          >
+            Delete
+          </Button>
+        </>
+      ),
+    },
+  ];
+  const handleEdit = (row: VictimType) => {
+    // Populate the form with the selected row's data for editing
+    setName(row.name || '');
+    setAddress(row.address || '');
+    setContactNo(row.contactNo || '');
+    setId(row.id?.toString() || '');
+    setCaseId(row.caseId?.toString() || '');
+    setOpen(true); // Open the dialog for editing
   };
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this victim?')) {
+      try {
+        await deleteVictim(id); // Call the delete API (you need to implement this in your backend service)
+        fetchVictims(); // Refresh the list of victims
+      } catch (error) {
+        console.error('Error deleting victim:', error);
+      }
+    }
+  };
+  const getCaseName = (caseId: number) => {
+    const victimCase = cases.find((c) => c.id === caseId);
+    if(!victimCase) return 'Not Assigned';
+    return victimCase?.description;
+  }
+  const paginationModel = { page: 0, pageSize: 5 };
+  
   return (
     <div className="App">
       <div style={{ display: 'flex'}}>
@@ -106,6 +152,8 @@ function Victim() {
               const formData = new FormData(event.currentTarget);
               const formJson = Object.fromEntries((formData as any).entries());
               const victim = {
+                id: id? Number(id) : undefined,
+                caseId: caseId? Number(caseId) : undefined,
                 name: formJson.name,
                 contactNo: formJson.contactNo,
                 address: formJson.address
@@ -118,14 +166,15 @@ function Victim() {
                 setName('');
                 setContactNo('');
                 setAddress('');
-                setCaseObj({} as CaseType);
+                setCaseId('-1');
+                setId('-1');
                 fetchVictims();
               });
             },
           },
         }}
       >
-        <DialogTitle>Add Victim</DialogTitle>
+        <DialogTitle>{id === '-1'?'Add Victim':'Modify Victim'}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -163,26 +212,6 @@ function Victim() {
             variant="standard"
             style={{ marginBottom: 15 }}
           />
-          <InputLabel id="case-label">Case</InputLabel>
-          <Select
-            labelId="case-label"
-            id="caseObj"
-            name="caseObj"
-            value={caseObj?.id?.toString()}
-            label="Case"
-            fullWidth
-            onChange={handleChangeCaseObj}
-            style={{ marginBottom: 15 }}
-          >
-            {
-              // Map through the cases and create a MenuItem for each one
-              cases.map((c) => (
-                <MenuItem key={c.id} value={c.id}>
-                  {c.name}
-                </MenuItem>
-              ))
-            }
-          </Select>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
@@ -195,7 +224,6 @@ function Victim() {
           columns={columns}
           initialState={{ pagination: { paginationModel } }}
           pageSizeOptions={[5, 10]}
-          checkboxSelection
           sx={{ border: 0 }}
         />
       </Paper>

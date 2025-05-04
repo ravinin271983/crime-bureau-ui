@@ -16,6 +16,11 @@ const saveCase = (caseObj: CaseType) => {
         return response.data;
     });
 }
+const deleteCase = (id: string) => {
+    return axios.delete('http://localhost:8080/cases/'+id).then((response) => {
+        return response.data;
+    });
+}
 const getInvestigatingOfficers = () => {
     return axios.get<InvestigatingOfficerType[]>('http://localhost:8080/investigatingofficer').then((response) => {
         return response.data;
@@ -23,6 +28,11 @@ const getInvestigatingOfficers = () => {
 }
 const saveInvestigatingOfficer = (investigatingOfficer: InvestigatingOfficerType) => {
     return axios.post<InvestigatingOfficerType>('http://localhost:8080/investigatingofficer', investigatingOfficer).then((response) => {
+        return response.data;
+    });
+}
+const deleteInvestigatingOfficer = (id: string) => {
+    return axios.delete('http://localhost:8080/investigatingofficer/'+id).then((response) => {
         return response.data;
     });
 }
@@ -36,6 +46,11 @@ const saveEvidence = (evidence: EvidenceType) => {
         return response.data;
     });
 }
+const deleteEvidence = (id: string) => {
+    return axios.delete('http://localhost:8080/evidence/'+id).then((response) => {
+        return response.data;
+    });
+}
 const getLegalActions = () => {
     return axios.get<LegalActionType[]>('http://localhost:8080/legalaction').then((response) => {
         return response.data;
@@ -43,6 +58,11 @@ const getLegalActions = () => {
 }
 const saveLegalAction = (legalAction: LegalActionType) => {
     return axios.post<LegalActionType>('http://localhost:8080/legalaction', legalAction).then((response) => {
+        return response.data;
+    });
+}
+const deleteLegalAction = (id: string) => {
+    return axios.delete('http://localhost:8080/legalaction/'+id).then((response) => {
         return response.data;
     });
 }
@@ -56,14 +76,24 @@ const saveSuspect= (suspect: SuspectType) => {
         return response.data;
     });
 }
+const deleteSuspect = (id: string) => {
+    return axios.delete('http://localhost:8080/suspect/'+id).then((response) => {
+        return response.data;
+    });
+}
 const getVictims = () => {
     return axios.get<VictimType[]>('http://localhost:8080/victim').then((response) => {
         return response.data;
     });
 }
-const saveVictim= (victim: VictimType) => {
+const saveVictim = (victim: VictimType) => {
     return axios.post<VictimType>('http://localhost:8080/victim', victim).then((response) => {
         return response.data;
     });
 }
-export { getCases, saveCase, getInvestigatingOfficers, saveInvestigatingOfficer, getEvidences, saveEvidence, getLegalActions, saveLegalAction, getSuspects, saveSuspect, getVictims, saveVictim };
+const deleteVictim = (id: string) => {
+    return axios.delete('http://localhost:8080/victim/'+id).then((response) => {
+        return response.data;
+    });
+}
+export { getCases, saveCase, deleteCase, getInvestigatingOfficers, saveInvestigatingOfficer, deleteInvestigatingOfficer, getEvidences, saveEvidence, deleteEvidence, getLegalActions, saveLegalAction, deleteLegalAction, getSuspects, saveSuspect, deleteSuspect, getVictims, saveVictim, deleteVictim };
