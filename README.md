@@ -1,6 +1,6 @@
 # Crime Bureau React App
 
-This react app was created for college students, it has very basic features like add, display objects. Edit and delete feature will be added shortly.
+This react app was created for college students, it has very basic features like add, edit, delete and list objects. 
 It integrates with crime-bureau-services for backend operations, so make sure backend is imported and running beforehand.
 
 ## How to run
