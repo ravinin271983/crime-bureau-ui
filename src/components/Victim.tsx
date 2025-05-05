@@ -10,12 +10,10 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import PlusIcon from '@mui/icons-material/Add';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import InputLabel from '@mui/material/InputLabel';
 import CaseType from '../types/CaseType';
 import VictimType from '../types/VictimType';
-
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 function Victim() {
   const [victims, setVictims] = useState<VictimType[]>([]);
@@ -82,23 +80,12 @@ function Victim() {
       width: 250,
       renderCell: (params) => (
         <>
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            style={{ marginRight: 10 }}
-            onClick={() => handleEdit(params.row)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            size="small"
-            onClick={() => handleDelete(params.row.id)}
-          >
-            Delete
-          </Button>
+          <IconButton color="primary" onClick={() => handleEdit(params.row)}>
+            <EditIcon />
+          </IconButton>
+          <IconButton color="error" onClick={() => handleDelete(params.row.id)}>
+            <DeleteIcon />
+          </IconButton>
         </>
       ),
     },
@@ -161,7 +148,7 @@ function Victim() {
 
               saveVictim(victim)
               .then((response) => {
-                console.log('response', response) 
+                // console.log('response', response) 
                 handleClose();
                 setName('');
                 setContactNo('');

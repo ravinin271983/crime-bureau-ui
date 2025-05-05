@@ -15,9 +15,9 @@ import MenuItem from '@mui/material/MenuItem';
 import InputLabel from '@mui/material/InputLabel';
 import CaseType from '../types/CaseType';
 import LegalActionType from '../types/LegalActionType';
-
-import CreateIcon from '@mui/icons-material/Create';
+import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+
 const paginationModel = { page: 0, pageSize: 5 };
 
 function LegalAction() {
@@ -39,7 +39,7 @@ function LegalAction() {
     try {
       const data = await getCases();
       setCases(data);
-      console.log('cases', data)
+      // console.log('cases', data)
     } catch (error) {
       console.error('Error fetching cases:', error);
     }
@@ -47,6 +47,10 @@ function LegalAction() {
   const [open, setOpen] = React.useState(false);
 
   const handleClickOpen = () => {
+    setActionTaken('');
+    setId('');
+    setCaseId('-1');
+    setCaseObj({} as CaseType);
     setOpen(true);
   };
   const columns: GridColDef[] = [
@@ -56,29 +60,18 @@ function LegalAction() {
       headerName: 'Case',
       width: 160,
       valueGetter: (legalActionId: number) => getCaseName(legalActionId),
-    },{
+    }, {
       field: 'actions',
       headerName: 'Actions',
       width: 250,
       renderCell: (params) => (
         <>
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            style={{ marginRight: 10 }}
-            onClick={() => handleEdit(params.row)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            size="small"
-            onClick={() => handleDelete(params.row.id)}
-          >
-            Delete
-          </Button>
+          <IconButton color="primary" onClick={() => handleEdit(params.row)}>
+            <EditIcon />
+          </IconButton>
+          <IconButton color="error" onClick={() => handleDelete(params.row.id)}>
+            <DeleteIcon />
+          </IconButton>
         </>
       ),
     },
@@ -87,8 +80,10 @@ function LegalAction() {
     // Populate the form with the selected row's data for editing
     setActionTaken(row.actionTaken);
     setId(row.id?.toString() || '');
-    if (row.caseObj) {
-      setCaseId(row.caseObj?.id?.toString() || '');
+    const mappedCase = cases.find((c) => c.legalActionId === row.id);
+    if (mappedCase) {
+      setCaseId(mappedCase.id?.toString() || '');
+      setCaseObj(mappedCase);
     }
     setOpen(true); // Open the dialog for editing
   };
@@ -175,7 +170,7 @@ function LegalAction() {
           },
         }}
       >
-        <DialogTitle>Add Legal Action</DialogTitle>
+        <DialogTitle>{!id || id === '-1'?'Add Legal Action':'Modify Legal Action'}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus

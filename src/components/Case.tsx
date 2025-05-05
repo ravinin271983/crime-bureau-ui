@@ -20,7 +20,8 @@ import SuspectType from '../types/SuspectType';
 import VictimType from '../types/VictimType';
 import Checkbox from '@mui/material/Checkbox';
 import ListItemText from '@mui/material/ListItemText';
-
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 function Case() {
   const [cases, setCases] = useState<CaseType[]>([]);
   const [investigatingOfficers, setInvestigatingOfficers] = useState<InvestigatingOfficerType[]>([]);
@@ -28,10 +29,6 @@ function Case() {
   const [suspects, setSuspects] = useState<SuspectType[]>([]);
   const [victims, setVictims] = useState<VictimType[]>([]);
 
-  const [investigatingOfficerIds, setInvestigatingOfficerIds] = useState<string[]>([]);
-  const [evidenceIds, setEvidenceIds] = useState<string[]>([]);
-  const [suspectIds, setSuspectIds] = useState<string[]>([]);
-  const [victimIds, setVictimIds] = useState<string[]>([]);
   useEffect(() => {
     fetchCases();
     fetchInvestigatingOfficers();
@@ -83,13 +80,19 @@ function Case() {
   const [open, setOpen] = React.useState(false);
 
   const handleClickOpen = () => {
+    setDescription('');
+    setInvestigatingOfficerId('-1');
+    setSelectedEvidences([]);
+    setSelectedVictims([]);
+    setSelectedSuspects([]);
+    setCaseId('-1');
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
   };
-  const [caseId, setCaseId] = useState<string>('');
+  const [caseId, setCaseId] = useState<string>('-1');
   const [description, setDescription] = useState<string>('');
   const [investigatingOfficerId, setInvestigatingOfficerId] = useState<string>('-1');
   const [selectedEvidences, setSelectedEvidences] = useState<string[]>([]);
@@ -107,7 +110,7 @@ function Case() {
   };
   const handleChangeSelectedSuspects = (event: SelectChangeEvent<string[]>) => {
     const selectedSuspectId = event.target.value;
-    console.log('selectedSuspectId', selectedSuspectId);
+    // console.log('selectedSuspectId', selectedSuspectId);
     typeof selectedSuspectId === 'string' ? setSelectedSuspects([selectedSuspectId]) : setSelectedSuspects(selectedSuspectId);
     
   };
@@ -161,23 +164,12 @@ function Case() {
       width: 250,
       renderCell: (params) => (
         <>
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            style={{ marginRight: 10 }}
-            onClick={() => handleEdit(params.row)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            size="small"
-            onClick={() => handleDelete(params.row.id)}
-          >
-            Delete
-          </Button>
+          <IconButton color="primary" onClick={() => handleEdit(params.row)}>
+            <EditIcon />
+          </IconButton>
+          <IconButton color="error" onClick={() => handleDelete(params.row.id)}>
+            <DeleteIcon />
+          </IconButton>
         </>
       ),
     },
@@ -287,7 +279,7 @@ function Case() {
             },
           }}
         >
-          <DialogTitle>Add Case</DialogTitle>
+          <DialogTitle>{!caseId || caseId==='-1'?'Add Case':'Modify Case'}</DialogTitle>
           <DialogContent>
             <TextField
               id="description"

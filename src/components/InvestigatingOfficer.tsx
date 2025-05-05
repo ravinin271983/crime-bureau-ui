@@ -8,10 +8,11 @@ import TextField from '@mui/material/TextField';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import PlusIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 function InvestigatingOfficer() {
   const [investigatingOfficers, setInvestigatingOfficers] = useState<InvestigatingOfficerType[]>([]);
@@ -29,6 +30,11 @@ function InvestigatingOfficer() {
   const [open, setOpen] = React.useState(false);
 
   const handleClickOpen = () => {
+    setName('');
+    setDept('');
+    setRole('');
+    setContact('');
+    setId('-1');
     setOpen(true);
   };
 
@@ -64,37 +70,26 @@ function InvestigatingOfficer() {
       width: 250,
       renderCell: (params) => (
         <>
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            style={{ marginRight: 10 }}
-            onClick={() => handleEdit(params.row)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            size="small"
-            onClick={() => handleDelete(params.row.id)}
-          >
-            Delete
-          </Button>
+          <IconButton color="primary" onClick={() => handleEdit(params.row)}>
+            <EditIcon />
+          </IconButton>
+          <IconButton color="error" onClick={() => handleDelete(params.row.id)}>
+            <DeleteIcon />
+          </IconButton>
         </>
       ),
     },
   ];
   const handleEdit = (row: InvestigatingOfficerType) => {
-        // Populate the form with the selected row's data for editing
-        console.log('handleEdit::row', row)
-        setName(row.name || '');
-        setDept(row.dept || '');
-        setRole(row.role || '');
-        setContact(row.contact?.toString() || '');
-        setId(row.id?.toString() || '');
-        setOpen(true); // Open the dialog for editing
-    };
+    // Populate the form with the selected row's data for editing
+    // console.log('handleEdit::row', row)
+    setName(row.name || '');
+    setDept(row.dept || '');
+    setRole(row.role || '');
+    setContact(row.contact?.toString() || '');
+    setId(row.id?.toString() || '');
+    setOpen(true); // Open the dialog for editing
+  };
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this investigating officer?')) {
       try {
@@ -137,7 +132,7 @@ function InvestigatingOfficer() {
                 }
                 saveInvestigatingOfficer(officer)
                 .then((response) => {
-                  console.log('response', response) 
+                  // console.log('response', response) 
                   handleClose();
                   setName('');
                   setContact('');
@@ -149,7 +144,7 @@ function InvestigatingOfficer() {
             },
           }}
         >
-          <DialogTitle>Add Investigating Officer</DialogTitle>
+          <DialogTitle>{!id || id === '-1'?'Add Investigating Officer':'Modify Investigating Officer'}</DialogTitle>
           <DialogContent>
             <TextField
               autoFocus

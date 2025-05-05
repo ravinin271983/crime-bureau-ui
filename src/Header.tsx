@@ -57,7 +57,13 @@ function ResponsiveAppBar() {
     <AppBar position="static">
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          <AdbIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, mr: 2 }}>
+            <img
+              src="/detective-logo1.png" // Replace with the actual path to your logo
+              alt="Logo"
+              style={{ height: '40px', width: 'auto' }} // Adjust the size as needed
+            />
+          </Box>
           <Typography
             variant="h6"
             noWrap
@@ -73,10 +79,10 @@ function ResponsiveAppBar() {
               textDecoration: 'none',
             }}
           >
-            LOGO
+            Crime Bureau
           </Typography>
 
-          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
+          <Box sx={{ alignItems: 'right', flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
             <IconButton
               size="large"
               aria-label="account of current user"

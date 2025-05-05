@@ -7,16 +7,13 @@ import TextField from '@mui/material/TextField';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import PlusIcon from '@mui/icons-material/Add';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import InputLabel from '@mui/material/InputLabel';
 import CaseType from '../types/CaseType';
 import SuspectType from '../types/SuspectType';
-
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 function Suspect() {
   const [suspects, setSuspects] = useState<SuspectType[]>([]);
@@ -44,6 +41,13 @@ function Suspect() {
   const [open, setOpen] = React.useState(false);
 
   const handleClickOpen = () => {
+    setName('');
+    setGender('');
+    setAge('');
+    setAddress('');
+    setCrimeHistory('');
+    setCaseId('-1');
+    setId('-1');
     setOpen(true);
   };
 
@@ -88,23 +92,12 @@ function Suspect() {
       width: 250,
       renderCell: (params) => (
         <>
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            style={{ marginRight: 10 }}
-            onClick={() => handleEdit(params.row)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            size="small"
-            onClick={() => handleDelete(params.row.id)}
-          >
-            Delete
-          </Button>
+          <IconButton color="primary" onClick={() => handleEdit(params.row)}>
+            <EditIcon />
+          </IconButton>
+          <IconButton color="error" onClick={() => handleDelete(params.row.id)}>
+            <DeleteIcon />
+          </IconButton>
         </>
       ),
     },
@@ -133,7 +126,7 @@ function Suspect() {
       }
     };
   const getCaseName = (caseId: number) => {
-    console.log('caseId', caseId)
+    // console.log('caseId', caseId)
     const suspectCase = cases.find((c) => c.id === caseId);
     if(!suspectCase) return 'Not Assigned';
     return suspectCase?.description;

@@ -7,14 +7,13 @@ import TextField from '@mui/material/TextField';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import PlusIcon from '@mui/icons-material/Add';
 import EvidenceType from '../types/EvidenceType';
 import CaseType from '../types/CaseType';
-
-
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 function Evidence() {
   const [evidences, setEvidences] = useState<EvidenceType[]>([]);
@@ -42,6 +41,10 @@ function Evidence() {
   const [open, setOpen] = React.useState(false);
 
   const handleClickOpen = () => {
+    setEvidenceType('');
+    setEvidenceDetails('');
+    setCaseId('');
+    setId('-1');
     setOpen(true);
   };
 
@@ -71,24 +74,13 @@ function Evidence() {
         headerName: 'Actions',
         width: 250,
         renderCell: (params) => (
-          <>
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            style={{ marginRight: 10 }}
-            onClick={() => handleEdit(params.row)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            size="small"
-            onClick={() => handleDelete(params.row.id)}
-          >
-            Delete
-          </Button>
+        <>
+          <IconButton color="primary" onClick={() => handleEdit(params.row)}>
+            <EditIcon />
+          </IconButton>
+          <IconButton color="error" onClick={() => handleDelete(params.row.id)}>
+            <DeleteIcon />
+          </IconButton>
         </>
         ),
       },
@@ -101,7 +93,7 @@ function Evidence() {
   const paginationModel = { page: 0, pageSize: 5 };
   const handleEdit = (row: EvidenceType) => {
       // Populate the form with the selected row's data for editing
-      console.log('handleEdit::row', row)
+      // console.log('handleEdit::row', row)
       setEvidenceType(row.evidenceType || '');
       setEvidenceDetails(row.evidenceDetails || '');
       setCaseId(row.caseId?.toString() || '');
@@ -158,7 +150,7 @@ function Evidence() {
           },
         }}
       >
-        <DialogTitle>Add Evidence</DialogTitle>
+        <DialogTitle>{!id || id === '-1'?'Add Evidence':'Modify Evidence'}</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
